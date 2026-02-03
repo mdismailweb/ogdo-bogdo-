@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     TextField,
     Dialog,
@@ -10,38 +10,28 @@ import {
     IconButton
 } from '@mui/material';
 import { AccessTime as ClockIcon, Close as CloseIcon } from '@mui/icons-material';
-import Picker from 'react-mobile-picker';
 
 const RollingTimePicker = ({
     label = "Time",
-    value = "", // 24-hour format "HH:MM"
+    value = "",
     onChange,
     disabled = false,
     error = false,
     helperText = ""
 }) => {
     const [open, setOpen] = useState(false);
-
-    // Generate options
-    const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
-    const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
-
-    // Display state
     const [displayTime, setDisplayTime] = useState({ hour: '12', minute: '00', period: 'AM' });
-
-    // Temporary picker state (while modal is open)
-    const [pickerValue, setPickerValue] = useState({ hour: '12', minute: '00' });
+    const [tempHour, setTempHour] = useState('12');
+    const [tempMinute, setTempMinute] = useState('00');
     const [tempPeriod, setTempPeriod] = useState('AM');
 
-    // Convert 24h to 12h for display
+    // Convert 24h to 12h
     useEffect(() => {
         if (value && value.includes(':')) {
             const [hours, mins] = value.split(':');
             const hourNum = parseInt(hours);
-
             const hour12 = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
             const period = hourNum >= 12 ? 'PM' : 'AM';
-
             setDisplayTime({ hour: hour12.toString(), minute: mins, period });
         }
     }, [value]);
@@ -50,18 +40,18 @@ const RollingTimePicker = ({
 
     const handleOpen = () => {
         if (disabled) return;
-        setPickerValue({ hour: displayTime.hour, minute: displayTime.minute });
+        setTempHour(displayTime.hour);
+        setTempMinute(displayTime.minute);
         setTempPeriod(displayTime.period);
         setOpen(true);
     };
 
     const handleDone = () => {
-        // Convert 12h to 24h
-        let hour24 = parseInt(pickerValue.hour);
+        let hour24 = parseInt(tempHour);
         if (tempPeriod === 'AM' && hour24 === 12) hour24 = 0;
         else if (tempPeriod === 'PM' && hour24 !== 12) hour24 += 12;
 
-        const time24 = `${hour24.toString().padStart(2, '0')}:${pickerValue.minute}`;
+        const time24 = `${hour24.toString().padStart(2, '0')}:${tempMinute}`;
         onChange(time24);
         setOpen(false);
     };
@@ -93,7 +83,6 @@ const RollingTimePicker = ({
                 fullWidth
                 PaperProps={{ sx: { borderRadius: 3, maxWidth: '340px' } }}
             >
-                {/* Header */}
                 <Box sx={{
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -110,7 +99,6 @@ const RollingTimePicker = ({
                 </Box>
 
                 <DialogContent sx={{ px: 2, py: 3 }}>
-                    {/* Time Display */}
                     <Typography sx={{
                         textAlign: 'center',
                         fontSize: '2.5rem',
@@ -119,61 +107,23 @@ const RollingTimePicker = ({
                         mb: 2,
                         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                     }}>
-                        {pickerValue.hour}:{pickerValue.minute} {tempPeriod}
+                        {tempHour}:{tempMinute} {tempPeriod}
                     </Typography>
 
-                    {/* Wheel Picker */}
-                    <Box sx={{
-                        '& .picker-container': {
-                            backgroundColor: '#f8f8f8',
-                            borderRadius: 2,
-                            py: 1,
-                            WebkitOverflowScrolling: 'touch', // iOS momentum scrolling
-                            touchAction: 'pan-y' // Allow vertical scrolling
-                        },
-                        '& .picker-column': {
-                            WebkitOverflowScrolling: 'touch',
-                            overflowY: 'auto'
-                        },
-                        '& .picker-item': {
-                            fontSize: '1.3rem',
-                            color: '#999',
-                            height: '36px',
-                            lineHeight: '36px',
-                            transition: 'all 0.3s ease'
-                        },
-                        '& .picker-item-selected': {
-                            color: '#000',
-                            fontWeight: 600,
-                            fontSize: '1.4rem'
-                        },
-                        '& .picker-highlight': {
-                            backgroundColor: 'rgba(0, 122, 255, 0.1)',
-                            border: '1px solid rgba(0, 122, 255, 0.3)',
-                            borderRadius: 1
-                        }
-                    }}>
-                        <Picker
-                            value={pickerValue}
-                            onChange={setPickerValue}
-                            wheelMode="natural"
-                            height={180}
-                        >
-                            <Picker.Column name="hour">
-                                {hours.map(hour => (
-                                    <Picker.Item key={hour} value={hour}>{hour}</Picker.Item>
-                                ))}
-                            </Picker.Column>
-                            <Picker.Column name="minute">
-                                {minutes.map(minute => (
-                                    <Picker.Item key={minute} value={minute}>{minute}</Picker.Item>
-                                ))}
-                            </Picker.Column>
-                        </Picker>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 2 }}>
+                        <WheelPicker
+                            value={tempHour}
+                            onChange={setTempHour}
+                            options={Array.from({ length: 12 }, (_, i) => (i + 1).toString())}
+                        />
+                        <WheelPicker
+                            value={tempMinute}
+                            onChange={setTempMinute}
+                            options={Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'))}
+                        />
                     </Box>
 
-                    {/* AM/PM Toggle */}
-                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
                         {['AM', 'PM'].map(period => (
                             <Button
                                 key={period}
@@ -205,13 +155,7 @@ const RollingTimePicker = ({
                         onClick={() => setOpen(false)}
                         variant="outlined"
                         fullWidth
-                        sx={{
-                            py: 0.8,
-                            fontSize: '0.95rem',
-                            textTransform: 'none',
-                            borderColor: '#d0d0d0',
-                            color: '#666'
-                        }}
+                        sx={{ py: 0.8, fontSize: '0.95rem', textTransform: 'none', borderColor: '#d0d0d0', color: '#666' }}
                     >
                         Cancel
                     </Button>
@@ -219,19 +163,223 @@ const RollingTimePicker = ({
                         onClick={handleDone}
                         variant="contained"
                         fullWidth
-                        sx={{
-                            py: 0.8,
-                            fontSize: '0.95rem',
-                            textTransform: 'none',
-                            backgroundColor: '#007AFF',
-                            '&:hover': { backgroundColor: '#0051D5' }
-                        }}
+                        sx={{ py: 0.8, fontSize: '0.95rem', textTransform: 'none', backgroundColor: '#007AFF', '&:hover': { backgroundColor: '#0051D5' } }}
                     >
                         Done
                     </Button>
                 </DialogActions>
             </Dialog>
         </>
+    );
+};
+
+// Custom Wheel Picker with Momentum Scrolling
+const WheelPicker = ({ value, onChange, options }) => {
+    const containerRef = useRef(null);
+    const [scrollY, setScrollY] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
+    const velocityRef = useRef(0);
+    const lastYRef = useRef(0);
+    const lastTimeRef = useRef(0);
+    const animationRef = useRef(null);
+
+    const ITEM_HEIGHT = 40;
+    const VISIBLE_ITEMS = 5;
+
+    // Initialize scroll position
+    useEffect(() => {
+        const index = options.indexOf(value);
+        if (index !== -1) {
+            setScrollY(index * ITEM_HEIGHT);
+        }
+    }, [value, options]);
+
+    // Momentum animation
+    const animate = () => {
+        if (!isDragging && Math.abs(velocityRef.current) > 0.1) {
+            setScrollY(prev => {
+                const newY = prev + velocityRef.current;
+                const maxScroll = (options.length - 1) * ITEM_HEIGHT;
+                const clampedY = Math.max(0, Math.min(newY, maxScroll));
+                return clampedY;
+            });
+
+            velocityRef.current *= 0.95; // Friction
+            animationRef.current = requestAnimationFrame(animate);
+        } else {
+            // Snap to nearest item
+            setScrollY(prev => {
+                const index = Math.round(prev / ITEM_HEIGHT);
+                const snappedY = index * ITEM_HEIGHT;
+                onChange(options[index]);
+                return snappedY;
+            });
+        }
+    };
+
+    const handleTouchStart = (e) => {
+        setIsDragging(true);
+        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+        velocityRef.current = 0;
+        lastYRef.current = e.touches[0].clientY;
+        lastTimeRef.current = Date.now();
+    };
+
+    const handleTouchMove = (e) => {
+        if (!isDragging) return;
+
+        const currentY = e.touches[0].clientY;
+        const currentTime = Date.now();
+        const deltaY = lastYRef.current - currentY;
+        const deltaTime = currentTime - lastTimeRef.current;
+
+        setScrollY(prev => {
+            const newY = prev + deltaY;
+            const maxScroll = (options.length - 1) * ITEM_HEIGHT;
+            return Math.max(0, Math.min(newY, maxScroll));
+        });
+
+        // Calculate velocity
+        if (deltaTime > 0) {
+            velocityRef.current = deltaY / deltaTime * 16; // Convert to per-frame velocity
+        }
+
+        lastYRef.current = currentY;
+        lastTimeRef.current = currentTime;
+    };
+
+    const handleTouchEnd = () => {
+        setIsDragging(false);
+        animationRef.current = requestAnimationFrame(animate);
+    };
+
+    const handleMouseDown = (e) => {
+        setIsDragging(true);
+        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+        velocityRef.current = 0;
+        lastYRef.current = e.clientY;
+        lastTimeRef.current = Date.now();
+    };
+
+    const handleMouseMove = (e) => {
+        if (!isDragging) return;
+
+        const currentY = e.clientY;
+        const currentTime = Date.now();
+        const deltaY = lastYRef.current - currentY;
+        const deltaTime = currentTime - lastTimeRef.current;
+
+        setScrollY(prev => {
+            const newY = prev + deltaY;
+            const maxScroll = (options.length - 1) * ITEM_HEIGHT;
+            return Math.max(0, Math.min(newY, maxScroll));
+        });
+
+        if (deltaTime > 0) {
+            velocityRef.current = deltaY / deltaTime * 16;
+        }
+
+        lastYRef.current = currentY;
+        lastTimeRef.current = currentTime;
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+        animationRef.current = requestAnimationFrame(animate);
+    };
+
+    useEffect(() => {
+        return () => {
+            if (animationRef.current) cancelAnimationFrame(animationRef.current);
+        };
+    }, []);
+
+    const currentIndex = Math.round(scrollY / ITEM_HEIGHT);
+
+    return (
+        <Box
+            ref={containerRef}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            sx={{
+                width: 80,
+                height: ITEM_HEIGHT * VISIBLE_ITEMS,
+                position: 'relative',
+                overflow: 'hidden',
+                cursor: isDragging ? 'grabbing' : 'grab',
+                userSelect: 'none',
+                touchAction: 'none'
+            }}
+        >
+            {/* Gradient overlays */}
+            <Box sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: ITEM_HEIGHT * 2,
+                background: 'linear-gradient(to bottom, rgba(255,255,255,1), rgba(255,255,255,0))',
+                pointerEvents: 'none',
+                zIndex: 2
+            }} />
+            <Box sx={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: ITEM_HEIGHT * 2,
+                background: 'linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0))',
+                pointerEvents: 'none',
+                zIndex: 2
+            }} />
+
+            {/* Selection highlight */}
+            <Box sx={{
+                position: 'absolute',
+                top: ITEM_HEIGHT * 2,
+                left: 0,
+                right: 0,
+                height: ITEM_HEIGHT,
+                backgroundColor: 'rgba(0, 122, 255, 0.08)',
+                borderTop: '1px solid rgba(0, 122, 255, 0.3)',
+                borderBottom: '1px solid rgba(0, 122, 255, 0.3)',
+                pointerEvents: 'none',
+                zIndex: 1
+            }} />
+
+            {/* Items */}
+            <Box sx={{
+                position: 'absolute',
+                top: ITEM_HEIGHT * 2,
+                transform: `translateY(-${scrollY}px)`,
+                transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+                width: '100%'
+            }}>
+                {options.map((option, index) => (
+                    <Box
+                        key={option}
+                        sx={{
+                            height: ITEM_HEIGHT,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: index === currentIndex ? '1.5rem' : '1.2rem',
+                            fontWeight: index === currentIndex ? 600 : 400,
+                            color: index === currentIndex ? '#000' : '#999',
+                            transition: 'all 0.2s',
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                        }}
+                    >
+                        {option}
+                    </Box>
+                ))}
+            </Box>
+        </Box>
     );
 };
 
