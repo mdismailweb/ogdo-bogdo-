@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     TextField,
     Dialog,
+    DialogActions,
     DialogContent,
     Button,
     Box,
@@ -9,6 +10,7 @@ import {
     IconButton
 } from '@mui/material';
 import { AccessTime as ClockIcon, Close as CloseIcon } from '@mui/icons-material';
+import Picker from 'react-mobile-picker';
 
 const RollingTimePicker = ({
     label = "Time",
@@ -20,66 +22,52 @@ const RollingTimePicker = ({
 }) => {
     const [open, setOpen] = useState(false);
 
-    // Display state (from value prop)
-    const [displayHour, setDisplayHour] = useState('12');
-    const [displayMinute, setDisplayMinute] = useState('00');
-    const [displayPeriod, setDisplayPeriod] = useState('AM');
+    // Generate options
+    const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
+    const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
-    // Temporary state (while modal is open)
-    const [tempHour, setTempHour] = useState('12');
-    const [tempMinute, setTempMinute] = useState('00');
+    // Display state
+    const [displayTime, setDisplayTime] = useState({ hour: '12', minute: '00', period: 'AM' });
+
+    // Temporary picker state (while modal is open)
+    const [pickerValue, setPickerValue] = useState({ hour: '12', minute: '00' });
     const [tempPeriod, setTempPeriod] = useState('AM');
 
-    // Convert 24-hour to 12-hour format
+    // Convert 24h to 12h for display
     useEffect(() => {
         if (value && value.includes(':')) {
             const [hours, mins] = value.split(':');
             const hourNum = parseInt(hours);
 
             const hour12 = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
-            const newPeriod = hourNum >= 12 ? 'PM' : 'AM';
+            const period = hourNum >= 12 ? 'PM' : 'AM';
 
-            setDisplayHour(hour12.toString());
-            setDisplayMinute(mins);
-            setDisplayPeriod(newPeriod);
+            setDisplayTime({ hour: hour12.toString(), minute: mins, period });
         }
     }, [value]);
 
-    // Format display value
-    const formattedValue = value ? `${displayHour}:${displayMinute} ${displayPeriod}` : '';
+    const formattedValue = value ? `${displayTime.hour}:${displayTime.minute} ${displayTime.period}` : '';
 
-    // Open modal and initialize temp state
     const handleOpen = () => {
         if (disabled) return;
-        setTempHour(displayHour);
-        setTempMinute(displayMinute);
-        setTempPeriod(displayPeriod);
+        setPickerValue({ hour: displayTime.hour, minute: displayTime.minute });
+        setTempPeriod(displayTime.period);
         setOpen(true);
     };
 
-    // Handle Done button
     const handleDone = () => {
         // Convert 12h to 24h
-        let hour24 = parseInt(tempHour);
-        if (tempPeriod === 'AM' && hour24 === 12) {
-            hour24 = 0;
-        } else if (tempPeriod === 'PM' && hour24 !== 12) {
-            hour24 += 12;
-        }
+        let hour24 = parseInt(pickerValue.hour);
+        if (tempPeriod === 'AM' && hour24 === 12) hour24 = 0;
+        else if (tempPeriod === 'PM' && hour24 !== 12) hour24 += 12;
 
-        const time24 = `${hour24.toString().padStart(2, '0')}:${tempMinute}`;
+        const time24 = `${hour24.toString().padStart(2, '0')}:${pickerValue.minute}`;
         onChange(time24);
-        setOpen(false);
-    };
-
-    // Handle Cancel button
-    const handleCancel = () => {
         setOpen(false);
     };
 
     return (
         <>
-            {/* Clickable Text Field */}
             <TextField
                 fullWidth
                 label={label}
@@ -94,25 +82,16 @@ const RollingTimePicker = ({
                 helperText={helperText}
                 sx={{
                     cursor: disabled ? 'default' : 'pointer',
-                    '& .MuiInputBase-input': {
-                        cursor: disabled ? 'default' : 'pointer'
-                    }
+                    '& .MuiInputBase-input': { cursor: disabled ? 'default' : 'pointer' }
                 }}
             />
 
-            {/* Time Picker Modal */}
             <Dialog
                 open={open}
-                onClose={handleCancel}
+                onClose={() => setOpen(false)}
                 maxWidth="xs"
                 fullWidth
-                PaperProps={{
-                    sx: {
-                        borderRadius: 3,
-                        overflow: 'hidden',
-                        maxWidth: '340px'
-                    }
-                }}
+                PaperProps={{ sx: { borderRadius: 3, maxWidth: '340px' } }}
             >
                 {/* Header */}
                 <Box sx={{
@@ -125,122 +104,104 @@ const RollingTimePicker = ({
                     <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
                         {label}
                     </Typography>
-                    <IconButton onClick={handleCancel} size="small">
+                    <IconButton onClick={() => setOpen(false)} size="small">
                         <CloseIcon fontSize="small" />
                     </IconButton>
                 </Box>
 
-                <DialogContent sx={{ px: 0, py: 2 }}>
-                    {/* Current Time Display - Large Blue Numbers */}
-                    <Box sx={{
+                <DialogContent sx={{ px: 2, py: 3 }}>
+                    {/* Time Display */}
+                    <Typography sx={{
                         textAlign: 'center',
-                        mb: 1.5,
-                        px: 3
+                        fontSize: '2.5rem',
+                        fontWeight: 400,
+                        color: '#007AFF',
+                        mb: 2,
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                     }}>
-                        <Typography sx={{
-                            fontSize: '2.5rem',
-                            fontWeight: 400,
-                            color: '#007AFF',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                            letterSpacing: '0.02em'
-                        }}>
-                            {tempHour}:{tempMinute} {tempPeriod}
-                        </Typography>
+                        {pickerValue.hour}:{pickerValue.minute} {tempPeriod}
+                    </Typography>
+
+                    {/* Wheel Picker */}
+                    <Box sx={{
+                        '& .picker-container': {
+                            backgroundColor: '#f8f8f8',
+                            borderRadius: 2,
+                            py: 1
+                        },
+                        '& .picker-item': {
+                            fontSize: '1.3rem',
+                            color: '#999',
+                            height: '36px',
+                            lineHeight: '36px'
+                        },
+                        '& .picker-item-selected': {
+                            color: '#000',
+                            fontWeight: 600,
+                            fontSize: '1.4rem'
+                        },
+                        '& .picker-highlight': {
+                            backgroundColor: 'rgba(0, 122, 255, 0.1)',
+                            border: '1px solid rgba(0, 122, 255, 0.3)',
+                            borderRadius: 1
+                        }
+                    }}>
+                        <Picker
+                            value={pickerValue}
+                            onChange={setPickerValue}
+                            wheelMode="natural"
+                            height={180}
+                        >
+                            <Picker.Column name="hour">
+                                {hours.map(hour => (
+                                    <Picker.Item key={hour} value={hour}>{hour}</Picker.Item>
+                                ))}
+                            </Picker.Column>
+                            <Picker.Column name="minute">
+                                {minutes.map(minute => (
+                                    <Picker.Item key={minute} value={minute}>{minute}</Picker.Item>
+                                ))}
+                            </Picker.Column>
+                        </Picker>
                     </Box>
 
-                    {/* Wheel Pickers Container */}
-                    <Box sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        gap: 2,
-                        px: 2,
-                        mb: 1.5
-                    }}>
-                        {/* Hour Wheel */}
-                        <IOSWheelPicker
-                            value={tempHour}
-                            onChange={setTempHour}
-                            options={Array.from({ length: 12 }, (_, i) => (i + 1).toString())}
-                        />
-
-                        {/* Minute Wheel */}
-                        <IOSWheelPicker
-                            value={tempMinute}
-                            onChange={setTempMinute}
-                            options={Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'))}
-                        />
-                    </Box>
-
-                    {/* AM/PM Toggle - iOS Style */}
-                    <Box sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        gap: 1,
-                        px: 3,
-                        mb: 0
-                    }}>
-                        <Button
-                            variant={tempPeriod === 'AM' ? 'contained' : 'outlined'}
-                            onClick={() => setTempPeriod('AM')}
-                            sx={{
-                                flex: 1,
-                                py: 1,
-                                fontSize: '1rem',
-                                textTransform: 'none',
-                                fontWeight: 500,
-                                borderRadius: 2,
-                                backgroundColor: tempPeriod === 'AM' ? '#007AFF' : 'transparent',
-                                borderColor: '#007AFF',
-                                color: tempPeriod === 'AM' ? 'white' : '#007AFF',
-                                '&:hover': {
-                                    backgroundColor: tempPeriod === 'AM' ? '#0051D5' : 'rgba(0, 122, 255, 0.04)'
-                                }
-                            }}
-                        >
-                            AM
-                        </Button>
-                        <Button
-                            variant={tempPeriod === 'PM' ? 'contained' : 'outlined'}
-                            onClick={() => setTempPeriod('PM')}
-                            sx={{
-                                flex: 1,
-                                py: 1,
-                                fontSize: '1rem',
-                                textTransform: 'none',
-                                fontWeight: 500,
-                                borderRadius: 2,
-                                backgroundColor: tempPeriod === 'PM' ? '#007AFF' : 'transparent',
-                                borderColor: '#007AFF',
-                                color: tempPeriod === 'PM' ? 'white' : '#007AFF',
-                                '&:hover': {
-                                    backgroundColor: tempPeriod === 'PM' ? '#0051D5' : 'rgba(0, 122, 255, 0.04)'
-                                }
-                            }}
-                        >
-                            PM
-                        </Button>
+                    {/* AM/PM Toggle */}
+                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                        {['AM', 'PM'].map(period => (
+                            <Button
+                                key={period}
+                                variant={tempPeriod === period ? 'contained' : 'outlined'}
+                                onClick={() => setTempPeriod(period)}
+                                fullWidth
+                                sx={{
+                                    py: 1,
+                                    fontSize: '1rem',
+                                    textTransform: 'none',
+                                    fontWeight: 500,
+                                    borderRadius: 2,
+                                    backgroundColor: tempPeriod === period ? '#007AFF' : 'transparent',
+                                    borderColor: '#007AFF',
+                                    color: tempPeriod === period ? 'white' : '#007AFF',
+                                    '&:hover': {
+                                        backgroundColor: tempPeriod === period ? '#0051D5' : 'rgba(0, 122, 255, 0.04)'
+                                    }
+                                }}
+                            >
+                                {period}
+                            </Button>
+                        ))}
                     </Box>
                 </DialogContent>
 
-                {/* Footer Buttons - Compact */}
-                <Box sx={{
-                    display: 'flex',
-                    gap: 1,
-                    px: 2,
-                    pb: 2,
-                    borderTop: '1px solid #e0e0e0',
-                    pt: 2
-                }}>
+                <DialogActions sx={{ px: 2, pb: 2, gap: 1, borderTop: '1px solid #e0e0e0', pt: 2 }}>
                     <Button
-                        onClick={handleCancel}
+                        onClick={() => setOpen(false)}
                         variant="outlined"
                         fullWidth
                         sx={{
                             py: 0.8,
                             fontSize: '0.95rem',
                             textTransform: 'none',
-                            fontWeight: 500,
-                            borderRadius: 2,
                             borderColor: '#d0d0d0',
                             color: '#666'
                         }}
@@ -255,167 +216,15 @@ const RollingTimePicker = ({
                             py: 0.8,
                             fontSize: '0.95rem',
                             textTransform: 'none',
-                            fontWeight: 500,
-                            borderRadius: 2,
                             backgroundColor: '#007AFF',
-                            '&:hover': {
-                                backgroundColor: '#0051D5'
-                            }
+                            '&:hover': { backgroundColor: '#0051D5' }
                         }}
                     >
                         Done
                     </Button>
-                </Box>
+                </DialogActions>
             </Dialog>
         </>
-    );
-};
-
-// iOS-Style Wheel Picker Component
-const IOSWheelPicker = ({ value, onChange, options }) => {
-    const containerRef = React.useRef(null);
-    const [isDragging, setIsDragging] = React.useState(false);
-
-    const ITEM_HEIGHT = 40;
-    const VISIBLE_ITEMS = 3;
-    const CONTAINER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS;
-
-    // Create infinite scroll by tripling the options
-    const infiniteOptions = [...options, ...options, ...options];
-    const offsetIndex = options.length;
-
-    // Scroll to selected value
-    React.useEffect(() => {
-        if (!containerRef.current || isDragging) return;
-
-        const selectedIndex = options.indexOf(value);
-        if (selectedIndex !== -1) {
-            const scrollPosition = (selectedIndex + offsetIndex - 2) * ITEM_HEIGHT;
-            containerRef.current.scrollTop = scrollPosition;
-        }
-    }, [value, options, offsetIndex, isDragging]);
-
-    // Handle scroll end - snap to nearest item
-    React.useEffect(() => {
-        if (!containerRef.current) return;
-
-        let scrollTimeout;
-        const handleScroll = () => {
-            setIsDragging(true);
-            clearTimeout(scrollTimeout);
-
-            scrollTimeout = setTimeout(() => {
-                if (!containerRef.current) return;
-
-                const scrollTop = containerRef.current.scrollTop;
-                const selectedIndex = Math.round(scrollTop / ITEM_HEIGHT);
-                const actualIndex = selectedIndex % options.length;
-
-                onChange(options[actualIndex]);
-
-                // Smooth scroll to snapped position
-                containerRef.current.scrollTo({
-                    top: selectedIndex * ITEM_HEIGHT,
-                    behavior: 'smooth'
-                });
-
-                setTimeout(() => setIsDragging(false), 100);
-            }, 100);
-        };
-
-        const container = containerRef.current;
-        container.addEventListener('scroll', handleScroll);
-
-        return () => {
-            clearTimeout(scrollTimeout);
-            container.removeEventListener('scroll', handleScroll);
-        };
-    }, [options, onChange]);
-
-    return (
-        <Box sx={{ position: 'relative', width: 80 }}>
-            {/* Gradient Overlay */}
-            <Box sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                pointerEvents: 'none',
-                background: `
-          linear-gradient(to bottom, 
-            rgba(255,255,255,1) 0%,
-            rgba(255,255,255,0) 20%,
-            rgba(255,255,255,0) 80%,
-            rgba(255,255,255,1) 100%)
-        `,
-                zIndex: 1
-            }} />
-
-            {/* Selection Highlight */}
-            <Box sx={{
-                position: 'absolute',
-                top: '50%',
-                left: 0,
-                right: 0,
-                height: ITEM_HEIGHT,
-                transform: 'translateY(-50%)',
-                backgroundColor: 'rgba(0, 122, 255, 0.08)',
-                borderTop: '1px solid rgba(0, 122, 255, 0.3)',
-                borderBottom: '1px solid rgba(0, 122, 255, 0.3)',
-                borderRadius: 1,
-                pointerEvents: 'none',
-                zIndex: 1
-            }} />
-
-            {/* Scrollable Container */}
-            <Box
-                ref={containerRef}
-                sx={{
-                    height: CONTAINER_HEIGHT,
-                    overflowY: 'scroll',
-                    scrollSnapType: 'y mandatory',
-                    WebkitOverflowScrolling: 'touch',
-                    '&::-webkit-scrollbar': {
-                        display: 'none'
-                    },
-                    msOverflowStyle: 'none',
-                    scrollbarWidth: 'none',
-                    paddingTop: ITEM_HEIGHT * 2,
-                    paddingBottom: ITEM_HEIGHT * 2
-                }}
-            >
-                {infiniteOptions.map((option, index) => (
-                    <Box
-                        key={`${option}-${index}`}
-                        onClick={() => {
-                            onChange(option);
-                            const targetIndex = index;
-                            containerRef.current.scrollTo({
-                                top: (targetIndex - 2) * ITEM_HEIGHT,
-                                behavior: 'smooth'
-                            });
-                        }}
-                        sx={{
-                            height: ITEM_HEIGHT,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '1.5rem',
-                            fontWeight: 400,
-                            color: option === value ? '#000' : '#999',
-                            cursor: 'pointer',
-                            scrollSnapAlign: 'start',
-                            transition: 'color 0.2s, font-size 0.2s',
-                            userSelect: 'none',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                        }}
-                    >
-                        {option}
-                    </Box>
-                ))}
-            </Box>
-        </Box>
     );
 };
 
