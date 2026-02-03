@@ -1,16 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-    Box,
-    FormControl,
-    InputLabel,
-    Select,
-    MenuItem,
+    TextField,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    Button,
     ToggleButton,
     ToggleButtonGroup,
-    Paper,
-    Typography
+    Box,
+    Typography,
+    IconButton
 } from '@mui/material';
-import { AccessTime as ClockIcon } from '@mui/icons-material';
+import { AccessTime as ClockIcon, Close as CloseIcon } from '@mui/icons-material';
 
 const RollingTimePicker = ({
     label = "Time",
@@ -20,232 +21,321 @@ const RollingTimePicker = ({
     error = false,
     helperText = ""
 }) => {
-    // State for 12-hour format components
-    const [hour, setHour] = useState('12');
-    const [minute, setMinute] = useState('00');
-    const [period, setPeriod] = useState('AM');
+    const [open, setOpen] = useState(false);
 
-    // Convert 24-hour to 12-hour format when value changes
+    // Display state (from value prop)
+    const [displayHour, setDisplayHour] = useState('12');
+    const [displayMinute, setDisplayMinute] = useState('00');
+    const [displayPeriod, setDisplayPeriod] = useState('AM');
+
+    // Temporary state (while modal is open)
+    const [tempHour, setTempHour] = useState('12');
+    const [tempMinute, setTempMinute] = useState('00');
+    const [tempPeriod, setTempPeriod] = useState('AM');
+
+    // Convert 24-hour to 12-hour format
     useEffect(() => {
         if (value && value.includes(':')) {
             const [hours, minutes] = value.split(':');
             const hourNum = parseInt(hours);
 
-            // Convert to 12-hour format
             const hour12 = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
             const newPeriod = hourNum >= 12 ? 'PM' : 'AM';
 
-            setHour(hour12.toString());
-            setMinute(minutes);
-            setPeriod(newPeriod);
+            setDisplayHour(hour12.toString());
+            setDisplayMinute(minutes);
+            setDisplayPeriod(newPeriod);
         }
     }, [value]);
 
-    // Convert 12-hour to 24-hour and notify parent
-    const handleTimeChange = (newHour, newMinute, newPeriod) => {
-        let hour24 = parseInt(newHour);
+    // Format display value
+    const formattedValue = value ? `${displayHour}:${displayMinute} ${displayPeriod}` : '';
 
-        // Convert to 24-hour format
-        if (newPeriod === 'AM' && hour24 === 12) {
+    // Open modal and initialize temp state
+    const handleOpen = () => {
+        if (disabled) return;
+        setTempHour(displayHour);
+        setTempMinute(displayMinute);
+        setTempPeriod(displayPeriod);
+        setOpen(true);
+    };
+
+    // Handle Done button
+    const handleDone = () => {
+        // Convert 12h to 24h
+        let hour24 = parseInt(tempHour);
+        if (tempPeriod === 'AM' && hour24 === 12) {
             hour24 = 0;
-        } else if (newPeriod === 'PM' && hour24 !== 12) {
+        } else if (tempPeriod === 'PM' && hour24 !== 12) {
             hour24 += 12;
         }
 
-        const time24 = `${hour24.toString().padStart(2, '0')}:${newMinute}`;
+        const time24 = `${hour24.toString().padStart(2, '0')}:${tempMinute}`;
         onChange(time24);
+        setOpen(false);
     };
 
-    const handleHourChange = (e) => {
-        const newHour = e.target.value;
-        setHour(newHour);
-        handleTimeChange(newHour, minute, period);
+    // Handle Cancel button
+    const handleCancel = () => {
+        setOpen(false);
     };
-
-    const handleMinuteChange = (e) => {
-        const newMinute = e.target.value;
-        setMinute(newMinute);
-        handleTimeChange(hour, newMinute, period);
-    };
-
-    const handlePeriodChange = (event, newPeriod) => {
-        if (newPeriod !== null) {
-            setPeriod(newPeriod);
-            handleTimeChange(hour, minute, newPeriod);
-        }
-    };
-
-    // Generate hour options (1-12)
-    const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
-
-    // Generate minute options (00-59)
-    const minutes = Array.from({ length: 60 }, (_, i) =>
-        i.toString().padStart(2, '0')
-    );
 
     return (
-        <Paper
-            elevation={0}
-            sx={{
-                p: 2,
-                border: error ? '1px solid #d32f2f' : '1px solid #e0e0e0',
-                borderRadius: 1,
-                backgroundColor: disabled ? '#f5f5f5' : 'transparent'
-            }}
-        >
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                <ClockIcon sx={{ mr: 1, color: disabled ? 'text.disabled' : 'primary.main', fontSize: 20 }} />
-                <Typography
-                    variant="body2"
-                    sx={{
-                        fontWeight: 500,
-                        color: disabled ? 'text.disabled' : error ? 'error.main' : 'text.primary'
-                    }}
-                >
-                    {label}
-                </Typography>
-            </Box>
+        <>
+            {/* Clickable Text Field */}
+            <TextField
+                fullWidth
+                label={label}
+                value={formattedValue}
+                onClick={handleOpen}
+                InputProps={{
+                    readOnly: true,
+                    endAdornment: <ClockIcon sx={{ color: 'action.active', cursor: 'pointer' }} />
+                }}
+                disabled={disabled}
+                error={error}
+                helperText={helperText}
+                sx={{
+                    cursor: disabled ? 'default' : 'pointer',
+                    '& .MuiInputBase-input': {
+                        cursor: disabled ? 'default' : 'pointer'
+                    }
+                }}
+            />
 
-            <Box sx={{
-                display: 'flex',
-                gap: 1.5,
-                alignItems: 'center',
-                flexWrap: 'wrap'
-            }}>
-                {/* Hour Selector */}
-                <FormControl
-                    size="small"
-                    sx={{
-                        minWidth: 80,
-                        flex: { xs: '1 1 45%', sm: '0 0 auto' }
-                    }}
-                    disabled={disabled}
-                >
-                    <InputLabel id={`${label}-hour-label`}>Hour</InputLabel>
-                    <Select
-                        labelId={`${label}-hour-label`}
-                        value={hour}
-                        label="Hour"
-                        onChange={handleHourChange}
-                        MenuProps={{
-                            PaperProps: {
-                                style: {
-                                    maxHeight: 300,
-                                },
-                            },
+            {/* Time Picker Modal */}
+            <Dialog
+                open={open}
+                onClose={handleCancel}
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        borderRadius: 3,
+                        p: 2
+                    }
+                }}
+            >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                        {label}
+                    </Typography>
+                    <IconButton onClick={handleCancel} size="small">
+                        <CloseIcon />
+                    </IconButton>
+                </Box>
+
+                <DialogContent sx={{ pb: 2 }}>
+                    {/* Wheel Pickers Container */}
+                    <Box sx={{
+                        display: 'flex',
+                        gap: 2,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        py: 2
+                    }}>
+                        {/* Hour Wheel */}
+                        <WheelPicker
+                            value={tempHour}
+                            onChange={setTempHour}
+                            options={Array.from({ length: 12 }, (_, i) => (i + 1).toString())}
+                            label="Hour"
+                        />
+
+                        {/* Separator */}
+                        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'text.secondary', pt: 2 }}>
+                            :
+                        </Typography>
+
+                        {/* Minute Wheel */}
+                        <WheelPicker
+                            value={tempMinute}
+                            onChange={setTempMinute}
+                            options={Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'))}
+                            label="Minute"
+                        />
+                    </Box>
+
+                    {/* AM/PM Toggle */}
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                        <ToggleButtonGroup
+                            value={tempPeriod}
+                            exclusive
+                            onChange={(e, newPeriod) => {
+                                if (newPeriod !== null) {
+                                    setTempPeriod(newPeriod);
+                                }
+                            }}
+                            sx={{
+                                '& .MuiToggleButton-root': {
+                                    px: 4,
+                                    py: 1.5,
+                                    fontSize: '1.1rem',
+                                    fontWeight: 600
+                                }
+                            }}
+                        >
+                            <ToggleButton value="AM">AM</ToggleButton>
+                            <ToggleButton value="PM">PM</ToggleButton>
+                        </ToggleButtonGroup>
+                    </Box>
+                </DialogContent>
+
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={handleCancel} variant="outlined" sx={{ px: 3 }}>
+                        Cancel
+                    </Button>
+                    <Button onClick={handleDone} variant="contained" sx={{ px: 3 }}>
+                        Done
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </>
+    );
+};
+
+// Wheel Picker Component
+const WheelPicker = ({ value, onChange, options, label }) => {
+    const containerRef = useRef(null);
+    const [isUserScrolling, setIsUserScrolling] = useState(false);
+
+    // Scroll to selected value on mount and value change
+    useEffect(() => {
+        if (!containerRef.current || isUserScrolling) return;
+
+        const selectedIndex = options.indexOf(value);
+        if (selectedIndex !== -1) {
+            const itemHeight = 48;
+            const scrollPosition = selectedIndex * itemHeight;
+            containerRef.current.scrollTop = scrollPosition;
+        }
+    }, [value, options, isUserScrolling]);
+
+    // Handle scroll end - snap to nearest item
+    useEffect(() => {
+        if (!containerRef.current) return;
+
+        let scrollTimeout;
+        const handleScroll = () => {
+            setIsUserScrolling(true);
+            clearTimeout(scrollTimeout);
+
+            scrollTimeout = setTimeout(() => {
+                if (!containerRef.current) return;
+
+                const itemHeight = 48;
+                const scrollTop = containerRef.current.scrollTop;
+                const selectedIndex = Math.round(scrollTop / itemHeight);
+                const clampedIndex = Math.max(0, Math.min(selectedIndex, options.length - 1));
+
+                // Update value
+                onChange(options[clampedIndex]);
+
+                // Smooth scroll to snapped position
+                containerRef.current.scrollTo({
+                    top: clampedIndex * itemHeight,
+                    behavior: 'smooth'
+                });
+
+                setIsUserScrolling(false);
+            }, 150);
+        };
+
+        const container = containerRef.current;
+        container.addEventListener('scroll', handleScroll);
+
+        return () => {
+            clearTimeout(scrollTimeout);
+            container.removeEventListener('scroll', handleScroll);
+        };
+    }, [options, onChange]);
+
+    return (
+        <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            minWidth: 80
+        }}>
+            <Typography variant="caption" sx={{ mb: 1, fontWeight: 600, color: 'text.secondary' }}>
+                {label}
+            </Typography>
+
+            <Box
+                ref={containerRef}
+                sx={{
+                    height: 240,
+                    overflowY: 'scroll',
+                    position: 'relative',
+                    scrollSnapType: 'y mandatory',
+                    WebkitOverflowScrolling: 'touch',
+                    '&::-webkit-scrollbar': {
+                        display: 'none'
+                    },
+                    msOverflowStyle: 'none',
+                    scrollbarWidth: 'none',
+                    // Gradient masks
+                    maskImage: 'linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)',
+                    // Center highlight overlay
+                    '&::before': {
+                        content: '""',
+                        position: 'sticky',
+                        top: 96,
+                        left: 0,
+                        right: 0,
+                        height: 48,
+                        backgroundColor: 'action.hover',
+                        borderRadius: 1,
+                        border: '2px solid',
+                        borderColor: 'primary.main',
+                        pointerEvents: 'none',
+                        zIndex: 1
+                    }
+                }}
+            >
+                {/* Spacer top */}
+                <Box sx={{ height: 96 }} />
+
+                {/* Options */}
+                {options.map((option) => (
+                    <Box
+                        key={option}
+                        onClick={() => {
+                            onChange(option);
+                            const selectedIndex = options.indexOf(option);
+                            const itemHeight = 48;
+                            containerRef.current.scrollTo({
+                                top: selectedIndex * itemHeight,
+                                behavior: 'smooth'
+                            });
                         }}
                         sx={{
-                            fontSize: '1.1rem',
-                            fontWeight: 500,
-                            '& .MuiSelect-select': {
-                                py: 1.5,
+                            height: 48,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.5rem',
+                            fontWeight: value === option ? 700 : 400,
+                            color: value === option ? 'primary.main' : 'text.secondary',
+                            cursor: 'pointer',
+                            scrollSnapAlign: 'start',
+                            transition: 'all 0.2s',
+                            userSelect: 'none',
+                            '&:hover': {
+                                backgroundColor: 'action.hover',
+                                borderRadius: 1
                             }
                         }}
                     >
-                        {hours.map((h) => (
-                            <MenuItem
-                                key={h}
-                                value={h}
-                                sx={{
-                                    fontSize: '1.1rem',
-                                    py: 1.5,
-                                    justifyContent: 'center'
-                                }}
-                            >
-                                {h}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
+                        {option}
+                    </Box>
+                ))}
 
-                <Typography variant="h6" sx={{ color: 'text.secondary', px: 0.5 }}>:</Typography>
-
-                {/* Minute Selector */}
-                <FormControl
-                    size="small"
-                    sx={{
-                        minWidth: 80,
-                        flex: { xs: '1 1 45%', sm: '0 0 auto' }
-                    }}
-                    disabled={disabled}
-                >
-                    <InputLabel id={`${label}-minute-label`}>Min</InputLabel>
-                    <Select
-                        labelId={`${label}-minute-label`}
-                        value={minute}
-                        label="Min"
-                        onChange={handleMinuteChange}
-                        MenuProps={{
-                            PaperProps: {
-                                style: {
-                                    maxHeight: 300,
-                                },
-                            },
-                        }}
-                        sx={{
-                            fontSize: '1.1rem',
-                            fontWeight: 500,
-                            '& .MuiSelect-select': {
-                                py: 1.5,
-                            }
-                        }}
-                    >
-                        {minutes.map((m) => (
-                            <MenuItem
-                                key={m}
-                                value={m}
-                                sx={{
-                                    fontSize: '1.1rem',
-                                    py: 1.5,
-                                    justifyContent: 'center'
-                                }}
-                            >
-                                {m}
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-
-                {/* AM/PM Toggle */}
-                <ToggleButtonGroup
-                    value={period}
-                    exclusive
-                    onChange={handlePeriodChange}
-                    disabled={disabled}
-                    sx={{
-                        flex: { xs: '1 1 100%', sm: '0 0 auto' },
-                        '& .MuiToggleButton-root': {
-                            flex: { xs: 1, sm: 'initial' },
-                            py: 1.2,
-                            px: 3,
-                            fontSize: '1rem',
-                            fontWeight: 600,
-                            minWidth: { xs: 'auto', sm: '60px' }
-                        }
-                    }}
-                >
-                    <ToggleButton value="AM" aria-label="AM">
-                        AM
-                    </ToggleButton>
-                    <ToggleButton value="PM" aria-label="PM">
-                        PM
-                    </ToggleButton>
-                </ToggleButtonGroup>
+                {/* Spacer bottom */}
+                <Box sx={{ height: 96 }} />
             </Box>
-
-            {helperText && (
-                <Typography
-                    variant="caption"
-                    sx={{
-                        mt: 1,
-                        display: 'block',
-                        color: error ? 'error.main' : 'text.secondary'
-                    }}
-                >
-                    {helperText}
-                </Typography>
-            )}
-        </Paper>
+        </Box>
     );
 };
 
