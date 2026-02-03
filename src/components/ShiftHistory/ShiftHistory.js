@@ -13,6 +13,7 @@ import {
   deleteShift
 } from '../../services/appScriptAPI';
 import TimeSegmentEntry from '../TimeSegmentEntry/TimeSegmentEntry';
+import RollingTimePicker from '../RollingTimePicker/RollingTimePicker';
 
 const ShiftHistory = ({ refreshTrigger }) => {
   const { user } = useAuth();
@@ -1264,25 +1265,21 @@ const ShiftHistory = ({ refreshTrigger }) => {
 
                   <div className="col-md-4">
                     <label className="form-label">Start Time</label>
-                    <input
-                      type="time"
-                      className="form-control"
+                    <RollingTimePicker
+                      label="Start Time"
                       value={editFormData.firstStartTime}
-                      onChange={(e) => setEditFormData({ ...editFormData, firstStartTime: e.target.value })}
+                      onChange={(time) => setEditFormData({ ...editFormData, firstStartTime: time })}
                       disabled={saving}
-                      required
                     />
                   </div>
 
                   <div className="col-md-4">
                     <label className="form-label">End Time</label>
-                    <input
-                      type="time"
-                      className="form-control"
+                    <RollingTimePicker
+                      label="End Time"
                       value={editFormData.lastEndTime}
-                      onChange={(e) => setEditFormData({ ...editFormData, lastEndTime: e.target.value })}
+                      onChange={(time) => setEditFormData({ ...editFormData, lastEndTime: time })}
                       disabled={saving}
-                      required
                     />
                   </div>
                 </div>
