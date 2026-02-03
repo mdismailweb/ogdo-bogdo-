@@ -186,13 +186,13 @@ const WheelPicker = ({ value, onChange, options }) => {
     const ITEM_HEIGHT = 40;
     const VISIBLE_ITEMS = 5;
 
-    // Initialize scroll position
+    // Initialize scroll position when value changes or component mounts
     useEffect(() => {
         const index = options.indexOf(value);
-        if (index !== -1) {
+        if (index !== -1 && !isDragging) {
             setScrollY(index * ITEM_HEIGHT);
         }
-    }, [value, options]);
+    }, [value, options, isDragging]);
 
     // Momentum animation
     const animate = () => {
@@ -204,7 +204,7 @@ const WheelPicker = ({ value, onChange, options }) => {
                 return clampedY;
             });
 
-            velocityRef.current *= 0.95; // Friction
+            velocityRef.current *= 0.92; // Friction - lower = longer drift
             animationRef.current = requestAnimationFrame(animate);
         } else {
             // Snap to nearest item
@@ -239,9 +239,9 @@ const WheelPicker = ({ value, onChange, options }) => {
             return Math.max(0, Math.min(newY, maxScroll));
         });
 
-        // Calculate velocity
+        // Calculate velocity with higher multiplier for better inertia
         if (deltaTime > 0) {
-            velocityRef.current = deltaY / deltaTime * 16; // Convert to per-frame velocity
+            velocityRef.current = deltaY / deltaTime * 50; // Increased for more momentum
         }
 
         lastYRef.current = currentY;
