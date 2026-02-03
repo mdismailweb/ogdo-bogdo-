@@ -127,13 +127,20 @@ const RollingTimePicker = ({
                         '& .picker-container': {
                             backgroundColor: '#f8f8f8',
                             borderRadius: 2,
-                            py: 1
+                            py: 1,
+                            WebkitOverflowScrolling: 'touch', // iOS momentum scrolling
+                            touchAction: 'pan-y' // Allow vertical scrolling
+                        },
+                        '& .picker-column': {
+                            WebkitOverflowScrolling: 'touch',
+                            overflowY: 'auto'
                         },
                         '& .picker-item': {
                             fontSize: '1.3rem',
                             color: '#999',
                             height: '36px',
-                            lineHeight: '36px'
+                            lineHeight: '36px',
+                            transition: 'all 0.3s ease'
                         },
                         '& .picker-item-selected': {
                             color: '#000',
