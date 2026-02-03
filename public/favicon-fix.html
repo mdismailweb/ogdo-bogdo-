@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Staff Portal Favicon</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .icon-canvas {
+            width: 64px;
+            height: 64px;
+            background: #0d6efd;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            position: relative;
+        }
+        .clock {
+            color: white;
+            font-size: 32px;
+        }
+        .staff-dot {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 16px;
+            height: 16px;
+            background: #ffc107;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        .instructions {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 Staff Portal Favicon Creator</h1>
+    
+    <div class="instructions">
+        <h2>📋 Quick Fix for Cached Favicon:</h2>
+        <ol>
+            <li><strong>Hard refresh your browser:</strong>
+                <ul>
+                    <li>Chrome/Edge: <code>Ctrl + Shift + R</code></li>
+                    <li>Firefox: <code>Ctrl + F5</code></li>
+                </ul>
+            </li>
+            <li><strong>Clear favicon cache:</strong>
+                <ul>
+                    <li>Go to: <code>chrome://settings/content/all</code></li>
+                    <li>Find localhost:3000 and delete</li>
+                </ul>
+            </li>
+            <li><strong>Or open in private/incognito window</strong></li>
+        </ol>
+    </div>
+
+    <div class="instructions">
+        <h2>🚀 Better Solution - Create ICO File:</h2>
+        
+        <div class="icon-canvas">
+            <span class="clock">🕐</span>
+            <div class="staff-dot"></div>
+        </div>
+        
+        <ol>
+            <li>Go to <strong><a href="https://favicon.io/favicon-converter/" target="_blank">favicon.io/favicon-converter/</a></strong></li>
+            <li>Take a screenshot of the icon above (right-click → copy image)</li>
+            <li>Upload it to favicon.io</li>
+            <li>Download the generated favicon.ico</li>
+            <li>Replace the favicon.ico file in your <code>public</code> folder</li>
+            <li>Restart your React app</li>
+        </ol>
+    </div>
+
+    <div class="instructions">
+        <h2>🔧 Alternative - Manual Unicode Favicon:</h2>
+        <p>Copy this code and paste it as the first line in your index.html head section:</p>
+        <textarea style="width: 100%; height: 60px; font-family: monospace;">
+<link rel="icon" href="data:text/plain;base64,8J+VkA==" type="image/x-icon">
+        </textarea>
+    </div>
+
+    <script>
+        // Auto copy the textarea content when clicked
+        document.querySelector('textarea').addEventListener('click', function() {
+            this.select();
+            document.execCommand('copy');
+            alert('Code copied to clipboard!');
+        });
+    </script>
+</body>
+</html>

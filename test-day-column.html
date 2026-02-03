@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Day Column Data Migration Test</title>
+</head>
+<body>
+    <h1>Day Column Testing (New Entries Only)</h1>
+    <button onclick="testDayColumn()">Test Day Column for New Entries</button>
+    <div id="results"></div>
+
+    <script>
+        // Use the same URL as the main application
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJsVl6QArWTF0KDk9U7PTpxdqDcaF80GUEwHJgU03JWOCFcyD2YWdNfAVuwjLvGx6Rhw/exec';
+
+        async function makeAPICall(data) {
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        ...data,
+                        clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        clientTimezoneOffset: new Date().getTimezoneOffset()
+                    }),
+                });
+                
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                return { success: false, message: error.message };
+            }
+        }
+
+        async function testDayColumn() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing Day Column for New Entries...</p>';
+            
+            try {
+                const result = await makeAPICall({ action: 'testDayColumnIntegration' });
+                results.innerHTML += `<h3>Day Column Test Results:</h3><pre>${JSON.stringify(result, null, 2)}</pre>`;
+                
+                if (result.success) {
+                    results.innerHTML += `<p style="color: green;">✅ Day column is working correctly for new entries!</p>`;
+                }
+            } catch (error) {
+                results.innerHTML += `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
