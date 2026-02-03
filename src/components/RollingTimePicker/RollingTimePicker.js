@@ -130,15 +130,15 @@ const RollingTimePicker = ({
                     </IconButton>
                 </Box>
 
-                <DialogContent sx={{ px: 0, py: 3 }}>
+                <DialogContent sx={{ px: 0, py: 2 }}>
                     {/* Current Time Display - Large Blue Numbers */}
                     <Box sx={{
                         textAlign: 'center',
-                        mb: 3,
+                        mb: 1.5,
                         px: 3
                     }}>
                         <Typography sx={{
-                            fontSize: '3rem',
+                            fontSize: '2.5rem',
                             fontWeight: 400,
                             color: '#007AFF',
                             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -154,7 +154,7 @@ const RollingTimePicker = ({
                         justifyContent: 'center',
                         gap: 2,
                         px: 2,
-                        mb: 2
+                        mb: 1.5
                     }}>
                         {/* Hour Wheel */}
                         <IOSWheelPicker
@@ -177,7 +177,7 @@ const RollingTimePicker = ({
                         justifyContent: 'center',
                         gap: 1,
                         px: 3,
-                        mb: 2
+                        mb: 0
                     }}>
                         <Button
                             variant={tempPeriod === 'AM' ? 'contained' : 'outlined'}
@@ -276,8 +276,8 @@ const IOSWheelPicker = ({ value, onChange, options }) => {
     const containerRef = React.useRef(null);
     const [isDragging, setIsDragging] = React.useState(false);
 
-    const ITEM_HEIGHT = 44;
-    const VISIBLE_ITEMS = 5;
+    const ITEM_HEIGHT = 40;
+    const VISIBLE_ITEMS = 3;
     const CONTAINER_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS;
 
     // Create infinite scroll by tripling the options
